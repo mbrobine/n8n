@@ -227,26 +227,35 @@ describe('Test Google Sheets, autoMapInputData', () => {
 
 		const items = [
 			{
-				json: {
-					id: 1,
-					name: 'Jon',
-					data: 'A',
+				data: {
+					json: {
+						id: 1,
+						name: 'Jon',
+						data: 'A',
+					},
 				},
+				index: 0,
 			},
 			{
-				json: {
-					id: 2,
-					name: 'Sam',
-					data: 'B',
+				data: {
+					json: {
+						id: 2,
+						name: 'Sam',
+						data: 'B',
+					},
 				},
+				index: 1,
 			},
 			{
-				json: {
-					id: 3,
-					name: 'Ron',
-					data: 'C',
-					info: 'some info',
+				data: {
+					json: {
+						id: 3,
+						name: 'Ron',
+						data: 'C',
+						info: 'some info',
+					},
 				},
+				index: 2,
 			},
 		];
 

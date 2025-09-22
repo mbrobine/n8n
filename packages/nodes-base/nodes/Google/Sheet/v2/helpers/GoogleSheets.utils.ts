@@ -1,14 +1,14 @@
 import type {
-	IExecuteFunctions,
 	IDataObject,
-	INodeExecutionData,
+	IExecuteFunctions,
+	INode,
 	INodeListSearchItems,
 	INodePropertyOptions,
-	INode,
 	ResourceMapperField,
 } from 'n8n-workflow';
 import { NodeOperationError } from 'n8n-workflow';
 
+import type { IndexedItem } from '../types';
 import type { GoogleSheet } from './GoogleSheet';
 import type {
 	RangeDetectionOptions,
@@ -239,7 +239,7 @@ export async function autoMapInputData(
 	this: IExecuteFunctions,
 	sheetNameWithRange: string,
 	sheet: GoogleSheet,
-	items: INodeExecutionData[],
+	items: IndexedItem[],
 	options: IDataObject,
 ) {
 	const returnData: IDataObject[] = [];
@@ -262,27 +262,27 @@ export async function autoMapInputData(
 		if (!columnNames.length) {
 			await sheet.updateRows(
 				sheetName,
-				[Object.keys(items[0].json).filter((key) => key !== ROW_NUMBER)],
+				[Object.keys(items[0].data.json).filter((key) => key !== ROW_NUMBER)],
 				(options.cellFormat as ValueInputOption) || 'RAW',
 				headerRow,
 			);
-			columnNames = Object.keys(items[0].json);
+			columnNames = Object.keys(items[0].data.json);
 		}
 
 		const newColumns = new Set<string>();
 
 		items.forEach((item) => {
-			Object.keys(item.json).forEach((key) => {
+			Object.keys(item.data.json).forEach((key) => {
 				if (key !== ROW_NUMBER && !columnNames.includes(key)) {
 					newColumns.add(key);
 				}
 			});
-			if (item.json[ROW_NUMBER]) {
-				const { [ROW_NUMBER]: _, ...json } = item.json;
+			if (item.data.json[ROW_NUMBER]) {
+				const { [ROW_NUMBER]: _, ...json } = item.data.json;
 				returnData.push(json);
 				return;
 			}
-			returnData.push(item.json);
+			returnData.push(item.data.json);
 		});
 		if (newColumns.size) {
 			await sheet.updateRows(
@@ -295,20 +295,20 @@ export async function autoMapInputData(
 	}
 	if (handlingExtraData === 'ignoreIt') {
 		items.forEach((item) => {
-			returnData.push(item.json);
+			returnData.push(item.data.json);
 		});
 	}
 	if (handlingExtraData === 'error') {
-		items.forEach((item, itemIndex) => {
-			Object.keys(item.json).forEach((key) => {
+		items.forEach((item) => {
+			Object.keys(item.data.json).forEach((key) => {
 				if (!columnNames.includes(key)) {
 					throw new NodeOperationError(this.getNode(), 'Unexpected fields in node input', {
-						itemIndex,
+						itemIndex: item.index,
 						description: `The input field '${key}' doesn't match any column in the Sheet. You can ignore this by changing the 'Handling extra data' field, which you can find under 'Options'.`,
 					});
 				}
 			});
-			returnData.push(item.json);
+			returnData.push(item.data.json);
 		});
 	}
 

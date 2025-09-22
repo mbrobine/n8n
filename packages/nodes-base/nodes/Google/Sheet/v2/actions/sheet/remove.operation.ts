@@ -3,15 +3,17 @@ import type { IExecuteFunctions, IDataObject, INodeExecutionData } from 'n8n-wor
 import { wrapData } from '../../../../../../utils/utilities';
 import type { GoogleSheet } from '../../helpers/GoogleSheet';
 import { apiRequest } from '../../transport';
+import type { IndexedItem } from '../../types';
 
 export async function execute(
 	this: IExecuteFunctions,
 	_sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
 	const returnData: INodeExecutionData[] = [];
-	const items = this.getInputData();
-	for (let i = 0; i < items.length; i++) {
+	for (const item of items) {
 		const [spreadsheetId, sheetWithinDocument] = sheetName.split('||');
 		const requests = [
 			{
@@ -31,7 +33,7 @@ export async function execute(
 
 		const executionData = this.helpers.constructExecutionMetaData(
 			wrapData(responseData as IDataObject[]),
-			{ itemData: { item: i } },
+			{ itemData: { item: item.index } },
 		);
 
 		returnData.push(...executionData);

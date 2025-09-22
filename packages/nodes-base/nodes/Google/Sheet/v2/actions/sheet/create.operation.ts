@@ -5,6 +5,7 @@ import type { GoogleSheet } from '../../helpers/GoogleSheet';
 import type { SheetProperties } from '../../helpers/GoogleSheets.types';
 import { getExistingSheetNames, hexToRgb } from '../../helpers/GoogleSheets.utils';
 import { apiRequest } from '../../transport';
+import type { IndexedItem } from '../../types';
 
 export const description: SheetProperties = [
 	{
@@ -78,21 +79,22 @@ export async function execute(
 	this: IExecuteFunctions,
 	sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
 	let responseData;
 	const returnData: INodeExecutionData[] = [];
-	const items = this.getInputData();
 
 	const existingSheetNames = await getExistingSheetNames(sheet);
 
-	for (let i = 0; i < items.length; i++) {
-		const sheetTitle = this.getNodeParameter('title', i, {}) as string;
+	for (const item of items) {
+		const sheetTitle = this.getNodeParameter('title', item.index, {}) as string;
 
 		if (existingSheetNames.includes(sheetTitle)) {
 			continue;
 		}
 
-		const options = this.getNodeParameter('options', i, {});
+		const options = this.getNodeParameter('options', item.index, {});
 		const properties = { ...options };
 		properties.title = sheetTitle;
 
@@ -124,7 +126,7 @@ export async function execute(
 
 		const executionData = this.helpers.constructExecutionMetaData(
 			wrapData(responseData as IDataObject[]),
-			{ itemData: { item: i } },
+			{ itemData: { item: item.index } },
 		);
 
 		returnData.push(...executionData);

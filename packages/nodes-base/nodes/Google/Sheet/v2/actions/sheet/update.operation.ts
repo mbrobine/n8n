@@ -11,6 +11,7 @@ import {
 	type ValueRenderOption,
 } from '../../helpers/GoogleSheets.types';
 import { cellFormatDefault, untilSheetSelected } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 
 export const description: SheetProperties = [
 	{
@@ -247,8 +248,9 @@ export async function execute(
 	this: IExecuteFunctions,
 	sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
-	const items = this.getInputData();
 	const nodeVersion = this.getNode().typeVersion;
 
 	const range = `${sheetName}!A:Z`;
@@ -333,7 +335,7 @@ export async function execute(
 		}
 	};
 
-	for (let i = 0; i < items.length; i++) {
+	for (const item of items) {
 		if (dataMode === 'nothing') continue;
 
 		const inputData: IDataObject[] = [];
@@ -341,34 +343,42 @@ export async function execute(
 		if (dataMode === 'autoMapInputData') {
 			const handlingExtraDataOption = (options.handlingExtraData as string) || 'insertInNewColumn';
 			if (handlingExtraDataOption === 'ignoreIt') {
-				inputData.push(items[i].json);
+				inputData.push(item.data.json);
 			}
 			if (handlingExtraDataOption === 'error') {
-				Object.keys(items[i].json).forEach((key) => errorOnUnexpectedColumn(key, i));
-				inputData.push(items[i].json);
+				Object.keys(item.data.json).forEach((key) => errorOnUnexpectedColumn(key, item.index));
+				inputData.push(item.data.json);
 			}
 			if (handlingExtraDataOption === 'insertInNewColumn') {
-				Object.keys(items[i].json).forEach(addNewColumn);
-				inputData.push(items[i].json);
+				Object.keys(item.data.json).forEach(addNewColumn);
+				inputData.push(item.data.json);
 			}
 		} else {
 			const valueToMatchOn =
 				nodeVersion < 4
-					? (this.getNodeParameter('valueToMatchOn', i, '') as string)
-					: (this.getNodeParameter(`columns.value["${columnsToMatchOn[0]}"]`, i, '') as string);
+					? (this.getNodeParameter('valueToMatchOn', item.index, '') as string)
+					: (this.getNodeParameter(
+							`columns.value["${columnsToMatchOn[0]}"]`,
+							item.index,
+							'',
+						) as string);
 
 			if (valueToMatchOn === '') {
 				throw new NodeOperationError(
 					this.getNode(),
 					"The 'Column to Match On' parameter is required",
 					{
-						itemIndex: i,
+						itemIndex: item.index,
 					},
 				);
 			}
 
 			if (nodeVersion < 4) {
-				const valuesToSend = this.getNodeParameter('fieldsUi.values', i, []) as IDataObject[];
+				const valuesToSend = this.getNodeParameter(
+					'fieldsUi.values',
+					item.index,
+					[],
+				) as IDataObject[];
 				if (!valuesToSend?.length) {
 					throw new NodeOperationError(
 						this.getNode(),
@@ -395,7 +405,7 @@ export async function execute(
 
 				inputData.push(fields);
 			} else {
-				const mappingValues = this.getNodeParameter('columns.value', i) as IDataObject;
+				const mappingValues = this.getNodeParameter('columns.value', item.index) as IDataObject;
 				if (Object.keys(mappingValues).length === 0) {
 					throw new NodeOperationError(
 						this.getNode(),
@@ -469,9 +479,9 @@ export async function execute(
 	}
 
 	if (nodeVersion < 4 || dataMode === 'autoMapInputData') {
-		return items.map((item, index) => {
-			item.pairedItem = { item: index };
-			return item;
+		return items.map((item) => {
+			item.data.pairedItem = { item: item.index };
+			return item.data;
 		});
 	} else {
 		if (!updateData.length) {
@@ -479,10 +489,10 @@ export async function execute(
 		}
 
 		const returnData: INodeExecutionData[] = [];
-		for (const [index, entry] of mappedValues.entries()) {
+		for (const item of items) {
 			returnData.push({
-				json: entry,
-				pairedItem: { item: index },
+				json: item.data.json,
+				pairedItem: { item: item.index },
 			});
 		}
 		return returnData;

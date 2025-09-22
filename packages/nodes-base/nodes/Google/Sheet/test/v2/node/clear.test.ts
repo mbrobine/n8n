@@ -30,6 +30,8 @@ describe('Google Sheet - Clear', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.clearData).toHaveBeenCalledWith('Sheet1');
@@ -47,6 +49,8 @@ describe('Google Sheet - Clear', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.clearData).toHaveBeenCalledWith('Sheet1!2:4');
@@ -64,6 +68,8 @@ describe('Google Sheet - Clear', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.clearData).toHaveBeenCalledWith('Sheet1!B:C');
@@ -80,6 +86,8 @@ describe('Google Sheet - Clear', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.clearData).toHaveBeenCalledWith('Sheet1!A1:C5');
@@ -96,6 +104,8 @@ describe('Google Sheet - Clear', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.getData).toHaveBeenCalledWith('Sheet1!1:1', 'FORMATTED_VALUE');

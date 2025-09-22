@@ -24,7 +24,7 @@ describe('Google Sheet - Remove', () => {
 	const sheetName = 'spreadsheet123||sheet456';
 
 	test('should process a single item', async () => {
-		const items = [{ json: {} }];
+		const items = [{ data: { json: {} }, index: 0 }];
 		((mockExecuteFunctions as IExecuteFunctions).getInputData as jest.Mock).mockReturnValue(items);
 
 		const apiResponse = { replies: [{ some: 'data' }], foo: 'bar' };
@@ -39,6 +39,8 @@ describe('Google Sheet - Remove', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			sheet as GoogleSheet,
 			sheetName,
+			'1234',
+			items,
 		);
 
 		expect(apiRequest).toHaveBeenCalledTimes(1);
@@ -56,7 +58,10 @@ describe('Google Sheet - Remove', () => {
 	});
 
 	test('should process multiple items', async () => {
-		const items = [{ json: {} }, { json: {} }];
+		const items = [
+			{ data: { json: {} }, index: 0 },
+			{ data: { json: {} }, index: 1 },
+		];
 		((mockExecuteFunctions as IExecuteFunctions).getInputData as jest.Mock).mockReturnValue(items);
 
 		const apiResponses = [
@@ -77,6 +82,8 @@ describe('Google Sheet - Remove', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			sheet as GoogleSheet,
 			sheetName,
+			'1234',
+			items,
 		);
 
 		expect(apiRequest).toHaveBeenCalledTimes(2);

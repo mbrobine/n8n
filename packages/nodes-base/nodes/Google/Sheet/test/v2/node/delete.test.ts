@@ -33,6 +33,8 @@ describe('Google Sheet - Delete', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.spreadsheetBatchUpdate).toHaveBeenCalledWith([
@@ -61,6 +63,8 @@ describe('Google Sheet - Delete', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.spreadsheetBatchUpdate).toHaveBeenCalledWith([
@@ -89,6 +93,8 @@ describe('Google Sheet - Delete', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.spreadsheetBatchUpdate).toHaveBeenCalledWith([
@@ -117,6 +123,8 @@ describe('Google Sheet - Delete', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 
 		expect(mockSheet.spreadsheetBatchUpdate).toHaveBeenCalledWith([
@@ -148,6 +156,8 @@ describe('Google Sheet - Delete', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 		expect(result).toEqual([{ json: { success: true } }]);
 	});

@@ -8,6 +8,7 @@ import type {
 	ValueRenderOption,
 } from '../../helpers/GoogleSheets.types';
 import { getRangeString, prepareSheetData } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 
 export async function readSheet(
 	this: IExecuteFunctions,
@@ -16,7 +17,7 @@ export async function readSheet(
 	itemIndex: number,
 	returnData: INodeExecutionData[],
 	nodeVersion: number,
-	items: INodeExecutionData[],
+	items: IndexedItem[],
 	rangeString?: string,
 	additionalOptions?: IDataObject,
 ): Promise<INodeExecutionData[]> {
@@ -74,10 +75,10 @@ export async function readSheet(
 		}
 
 		if (nodeVersion <= 4.1) {
-			for (let i = 1; i < items.length; i++) {
+			for (const item of items) {
 				const itemLookupValues = this.getNodeParameter(
 					'filtersUI.values',
-					i,
+					item.index,
 					[],
 				) as ILookupValues[];
 				if (itemLookupValues.length) {

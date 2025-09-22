@@ -23,19 +23,22 @@ describe('Google Sheet - Update', () => {
 	});
 
 	it('should update by row_number and not insert it as a new column', async () => {
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {
-					row_number: 3,
-					name: 'NEW NAME',
-					text: 'NEW TEXT',
+				data: {
+					json: {
+						row_number: 3,
+						name: 'NEW NAME',
+						text: 'NEW TEXT',
+					},
+					pairedItem: {
+						item: 0,
+						input: undefined,
+					},
 				},
-				pairedItem: {
-					item: 0,
-					input: undefined,
-				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter
 			.mockReturnValueOnce('USER_ENTERED') // valueInputMode
@@ -65,7 +68,7 @@ describe('Google Sheet - Update', () => {
 			],
 		});
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		expect(mockGoogleSheet.getData).toHaveBeenCalledWith('Sheet1', 'FORMATTED_VALUE');
 		expect(mockGoogleSheet.getColumnValues).toHaveBeenCalledWith({
@@ -108,19 +111,22 @@ describe('Google Sheet - Update', () => {
 	});
 
 	it('should update rows by column values with special character', async () => {
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {
-					row_number: 3,
-					name: '** δ$% " []',
-					text: 'δ$% " []',
+				data: {
+					json: {
+						row_number: 3,
+						name: '** δ$% " []',
+						text: 'δ$% " []',
+					},
+					pairedItem: {
+						item: 0,
+						input: undefined,
+					},
 				},
-				pairedItem: {
-					item: 0,
-					input: undefined,
-				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 			const params: { [key: string]: string | object } = {
@@ -160,7 +166,7 @@ describe('Google Sheet - Update', () => {
 			],
 		});
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		expect(mockGoogleSheet.getData).toHaveBeenCalledWith('Sheet1', 'FORMATTED_VALUE');
 
@@ -227,19 +233,22 @@ describe('Google Sheet - Update 4.6', () => {
 		it.each([{ rowNumber: undefined }])(
 			'displays a helpful error message when row_number is $rowNumber',
 			async ({ rowNumber }) => {
-				mockExecuteFunctions.getInputData.mockReturnValueOnce([
+				const inputData = [
 					{
-						json: {
-							row_number: rowNumber,
-							name: 'name',
-							text: 'txt',
+						data: {
+							json: {
+								row_number: rowNumber,
+								name: 'name',
+								text: 'txt',
+							},
+							pairedItem: {
+								item: 0,
+								input: undefined,
+							},
 						},
-						pairedItem: {
-							item: 0,
-							input: undefined,
-						},
+						index: 0,
 					},
-				]);
+				];
 
 				mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 					const params: { [key: string]: string | object } = {
@@ -258,7 +267,9 @@ describe('Google Sheet - Update 4.6', () => {
 
 				mockGoogleSheet.getColumnValues.mockResolvedValueOnce([]);
 
-				await expect(execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1')).rejects.toEqual(
+				await expect(
+					execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData),
+				).rejects.toEqual(
 					expect.objectContaining({
 						message: 'row_number is null or undefined',
 						description:
@@ -273,19 +284,22 @@ describe('Google Sheet - Update 4.6', () => {
 		it.each([{ nonRowNumber: undefined }])(
 			'displays a helpful error message when row_number is $rowNumber',
 			async ({ nonRowNumber }) => {
-				mockExecuteFunctions.getInputData.mockReturnValueOnce([
+				const inputData = [
 					{
-						json: {
-							row_number: 2,
-							nonRowNumber: 'name',
-							text: 'txt',
+						data: {
+							json: {
+								row_number: 2,
+								nonRowNumber: 'name',
+								text: 'txt',
+							},
+							pairedItem: {
+								item: 0,
+								input: undefined,
+							},
 						},
-						pairedItem: {
-							item: 0,
-							input: undefined,
-						},
+						index: 0,
 					},
-				]);
+				];
 
 				mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 					const params: { [key: string]: string | object } = {
@@ -309,7 +323,7 @@ describe('Google Sheet - Update 4.6', () => {
 					appendData: [],
 				});
 
-				await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1');
+				await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 				expect(mockExecuteFunctions.addExecutionHints).toHaveBeenCalledWith({
 					message: 'Warning: The value of column to match is null or undefined',
@@ -334,12 +348,15 @@ describe('Google Sheet - Update v4.6 vs v4.7 Behavior', () => {
 		mockExecuteFunctions.getNode.mockReturnValueOnce(mock<INode>({ typeVersion: 4.6 }));
 		mockGoogleSheet.batchUpdate.mockResolvedValueOnce([]);
 
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {},
-				pairedItem: { item: 0, input: undefined },
+				data: {
+					json: {},
+					pairedItem: { item: 0, input: undefined },
+				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 			const params: { [key: string]: string | object } = {
@@ -375,7 +392,7 @@ describe('Google Sheet - Update v4.6 vs v4.7 Behavior', () => {
 			appendData: [],
 		});
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		// v4.6: Only name field is updated, email is not included in the update
 		expect(mockGoogleSheet.prepareDataForUpdateOrUpsert).toHaveBeenCalledWith({
@@ -402,12 +419,15 @@ describe('Google Sheet - Update v4.6 vs v4.7 Behavior', () => {
 		mockExecuteFunctions.getNode.mockReturnValueOnce(mock<INode>({ typeVersion: 4.7 }));
 		mockGoogleSheet.batchUpdate.mockResolvedValueOnce([]);
 
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {},
-				pairedItem: { item: 0, input: undefined },
+				data: {
+					json: {},
+					pairedItem: { item: 0, input: undefined },
+				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 			const params: { [key: string]: string | object } = {
@@ -445,7 +465,7 @@ describe('Google Sheet - Update v4.6 vs v4.7 Behavior', () => {
 			appendData: [],
 		});
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		// v4.7: Both name and email fields are updated, email is cleared with empty string
 		expect(mockGoogleSheet.prepareDataForUpdateOrUpsert).toHaveBeenCalledWith({

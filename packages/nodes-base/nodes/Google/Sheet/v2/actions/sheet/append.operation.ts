@@ -16,6 +16,7 @@ import {
 	mapFields,
 	untilSheetSelected,
 } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 
 export const description: SheetProperties = [
 	{
@@ -209,8 +210,8 @@ export async function execute(
 	sheet: GoogleSheet,
 	range: string,
 	sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
-	const items = this.getInputData();
 	const nodeVersion = this.getNode().typeVersion;
 	let dataMode =
 		nodeVersion < 4
@@ -288,9 +289,9 @@ export async function execute(
 	}
 
 	if (nodeVersion < 4 || dataMode === 'autoMapInputData') {
-		return items.map((item, index) => {
-			item.pairedItem = { item: index };
-			return item;
+		return items.map((item) => {
+			item.data.pairedItem = { item: item.index };
+			return item.data;
 		});
 	} else {
 		const returnData: INodeExecutionData[] = [];

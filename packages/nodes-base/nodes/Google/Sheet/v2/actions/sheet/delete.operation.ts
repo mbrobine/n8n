@@ -1,9 +1,10 @@
-import type { IExecuteFunctions, IDataObject, INodeExecutionData } from 'n8n-workflow';
+import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
 
-import { generatePairedItemData, wrapData } from '../../../../../../utils/utilities';
+import { wrapData } from '../../../../../../utils/utilities';
 import type { GoogleSheet } from '../../helpers/GoogleSheet';
 import type { SheetProperties } from '../../helpers/GoogleSheets.types';
 import { getColumnNumber, untilSheetSelected } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 
 export const description: SheetProperties = [
 	{
@@ -115,19 +116,19 @@ export async function execute(
 	this: IExecuteFunctions,
 	sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
-	const items = this.getInputData();
-
-	for (let i = 0; i < items.length; i++) {
+	for (const item of items) {
 		const requests: IDataObject[] = [];
 		let startIndex, endIndex, numberToDelete;
-		const deleteType = this.getNodeParameter('toDelete', i) as string;
+		const deleteType = this.getNodeParameter('toDelete', item.index) as string;
 
 		if (deleteType === 'rows') {
-			startIndex = this.getNodeParameter('startIndex', i) as number;
+			startIndex = this.getNodeParameter('startIndex', item.index) as number;
 			// We start from 1 now...
 			startIndex--;
-			numberToDelete = this.getNodeParameter('numberToDelete', i) as number;
+			numberToDelete = this.getNodeParameter('numberToDelete', item.index) as number;
 			if (numberToDelete === 1) {
 				endIndex = startIndex + 1;
 			} else {
@@ -144,8 +145,8 @@ export async function execute(
 				},
 			});
 		} else if (deleteType === 'columns') {
-			startIndex = this.getNodeParameter('startIndex', i) as string;
-			numberToDelete = this.getNodeParameter('numberToDelete', i) as number;
+			startIndex = this.getNodeParameter('startIndex', item.index) as string;
+			numberToDelete = this.getNodeParameter('numberToDelete', item.index) as number;
 			startIndex = getColumnNumber(startIndex) - 1;
 			if (numberToDelete === 1) {
 				endIndex = startIndex + 1;
@@ -166,7 +167,7 @@ export async function execute(
 		await sheet.spreadsheetBatchUpdate(requests);
 	}
 
-	const itemData = generatePairedItemData(this.getInputData().length);
+	const itemData = items.map(({ index }) => ({ item: index }));
 	const returnData = this.helpers.constructExecutionMetaData(wrapData({ success: true }), {
 		itemData,
 	});

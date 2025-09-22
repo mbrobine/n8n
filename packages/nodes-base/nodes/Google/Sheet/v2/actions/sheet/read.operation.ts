@@ -4,6 +4,7 @@ import { dataLocationOnSheet, outputFormatting } from './commonDescription';
 import type { GoogleSheet } from '../../helpers/GoogleSheet';
 import type { SheetProperties } from '../../helpers/GoogleSheets.types';
 import { untilSheetSelected } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 import { readSheet } from '../utils/readOperation';
 
 const combineFiltersOptions: INodeProperties = {
@@ -171,23 +172,19 @@ export async function execute(
 	this: IExecuteFunctions,
 	sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
-	const items = this.getInputData();
 	const nodeVersion = this.getNode().typeVersion;
-	let length = 1;
-
-	if (nodeVersion > 4.1) {
-		length = items.length;
-	}
 
 	let returnData: INodeExecutionData[] = [];
 
-	for (let itemIndex = 0; itemIndex < length; itemIndex++) {
+	for (const item of items) {
 		returnData = await readSheet.call(
 			this,
 			sheet,
 			sheetName,
-			itemIndex,
+			item.index,
 			returnData,
 			nodeVersion,
 			items,

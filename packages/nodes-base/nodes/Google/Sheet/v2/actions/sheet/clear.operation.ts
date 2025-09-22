@@ -7,6 +7,7 @@ import {
 	getColumnNumber,
 	untilSheetSelected,
 } from '../../helpers/GoogleSheets.utils';
+import type { IndexedItem } from '../../types';
 
 export const description: SheetProperties = [
 	{
@@ -161,25 +162,25 @@ export async function execute(
 	this: IExecuteFunctions,
 	sheet: GoogleSheet,
 	sheetName: string,
+	_sheetId: string,
+	items: IndexedItem[],
 ): Promise<INodeExecutionData[]> {
-	const items = this.getInputData();
-
-	for (let i = 0; i < items.length; i++) {
-		const clearType = this.getNodeParameter('clear', i) as string;
-		const keepFirstRow = this.getNodeParameter('keepFirstRow', i, false) as boolean;
+	for (const item of items) {
+		const clearType = this.getNodeParameter('clear', item.index) as string;
+		const keepFirstRow = this.getNodeParameter('keepFirstRow', item.index, false) as boolean;
 		let range = '';
 
 		if (clearType === 'specificRows') {
-			const startIndex = this.getNodeParameter('startIndex', i) as number;
-			const rowsToDelete = this.getNodeParameter('rowsToDelete', i) as number;
+			const startIndex = this.getNodeParameter('startIndex', item.index) as number;
+			const rowsToDelete = this.getNodeParameter('rowsToDelete', item.index) as number;
 			const endIndex = rowsToDelete === 1 ? startIndex : startIndex + rowsToDelete - 1;
 
 			range = `${sheetName}!${startIndex}:${endIndex}`;
 		}
 
 		if (clearType === 'specificColumns') {
-			const startIndex = this.getNodeParameter('startIndex', i) as string;
-			const columnsToDelete = this.getNodeParameter('columnsToDelete', i) as number;
+			const startIndex = this.getNodeParameter('startIndex', item.index) as string;
+			const columnsToDelete = this.getNodeParameter('columnsToDelete', item.index) as number;
 			const columnNumber = getColumnNumber(startIndex);
 			const endIndex = columnsToDelete === 1 ? columnNumber : columnNumber + columnsToDelete - 1;
 
@@ -187,7 +188,7 @@ export async function execute(
 		}
 
 		if (clearType === 'specificRange') {
-			const rangeField = this.getNodeParameter('range', i) as string;
+			const rangeField = this.getNodeParameter('range', item.index) as string;
 			const region = rangeField.includes('!') ? rangeField.split('!')[1] || '' : rangeField;
 
 			range = `${sheetName}!${region}`;
@@ -206,5 +207,5 @@ export async function execute(
 		}
 	}
 
-	return items;
+	return items.map((item) => item.data);
 }

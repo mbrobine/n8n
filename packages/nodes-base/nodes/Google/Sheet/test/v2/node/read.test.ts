@@ -38,6 +38,8 @@ describe('Google Sheet - Read', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 		expect(mockSheet.getData).toHaveBeenCalled();
 		expect(mockSheet.structureArrayDataByColumn).toHaveBeenCalled();
@@ -59,6 +61,8 @@ describe('Google Sheet - Read', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 		expect(mockSheet.lookupValues).toHaveBeenCalled();
 		expect(result).toEqual([
@@ -75,6 +79,8 @@ describe('Google Sheet - Read', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			mockSheet as GoogleSheet,
 			'Sheet1',
+			'1234',
+			[{ data: { json: {} }, index: 0 }],
 		);
 		expect(result).toEqual([]);
 	});

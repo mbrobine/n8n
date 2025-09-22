@@ -15,19 +15,22 @@ describe('Google Sheet - Append or Update', () => {
 	});
 
 	it('should insert input data if sheet is empty', async () => {
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {
-					row_number: 3,
-					name: 'NEW NAME',
-					text: 'NEW TEXT',
+				data: {
+					json: {
+						row_number: 3,
+						name: 'NEW NAME',
+						text: 'NEW TEXT',
+					},
+					pairedItem: {
+						item: 0,
+						input: undefined,
+					},
 				},
-				pairedItem: {
-					item: 0,
-					input: undefined,
-				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNode.mockReturnValueOnce(mock<INode>({ typeVersion: 4.5 }));
 		mockExecuteFunctions.getNodeParameter
@@ -58,7 +61,7 @@ describe('Google Sheet - Append or Update', () => {
 		mockGoogleSheet.appendEmptyRowsOrColumns.mockResolvedValueOnce([]);
 		mockGoogleSheet.appendSheetData.mockResolvedValueOnce([]);
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		expect(mockGoogleSheet.getColumnValues).toHaveBeenCalledWith({
 			dataStartRowIndex: 1,
@@ -113,12 +116,15 @@ describe('Google Sheet - Append or Update v4.6 vs v4.7 Behavior', () => {
 			.mockReturnValueOnce(mock<INode>({ typeVersion: 4.6 }))
 			.mockReturnValueOnce(mock<INode>({ typeVersion: 4.6 }));
 
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {},
-				pairedItem: { item: 0, input: undefined },
+				data: {
+					json: {},
+					pairedItem: { item: 0, input: undefined },
+				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 			const params: { [key: string]: any } = {
@@ -159,7 +165,7 @@ describe('Google Sheet - Append or Update v4.6 vs v4.7 Behavior', () => {
 		mockGoogleSheet.appendEmptyRowsOrColumns.mockResolvedValueOnce([]);
 		mockGoogleSheet.appendSheetData.mockResolvedValueOnce([]);
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		// v4.6: Only fields with non-empty values are sent to prepareDataForUpdateOrUpsert
 		expect(mockGoogleSheet.prepareDataForUpdateOrUpsert).toHaveBeenCalledWith(
@@ -183,12 +189,15 @@ describe('Google Sheet - Append or Update v4.6 vs v4.7 Behavior', () => {
 			.mockReturnValueOnce(mock<INode>({ typeVersion: 4.7 }))
 			.mockReturnValueOnce(mock<INode>({ typeVersion: 4.7 }));
 
-		mockExecuteFunctions.getInputData.mockReturnValueOnce([
+		const inputData = [
 			{
-				json: {},
-				pairedItem: { item: 0, input: undefined },
+				data: {
+					json: {},
+					pairedItem: { item: 0, input: undefined },
+				},
+				index: 0,
 			},
-		]);
+		];
 
 		mockExecuteFunctions.getNodeParameter.mockImplementation((parameterName: string) => {
 			const params: { [key: string]: any } = {
@@ -228,7 +237,7 @@ describe('Google Sheet - Append or Update v4.6 vs v4.7 Behavior', () => {
 		mockGoogleSheet.appendEmptyRowsOrColumns.mockResolvedValueOnce([]);
 		mockGoogleSheet.appendSheetData.mockResolvedValueOnce([]);
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		// v4.7: Empty strings are preserved and sent to prepareDataForUpdateOrUpsert
 		expect(mockGoogleSheet.prepareDataForUpdateOrUpsert).toHaveBeenCalledWith(

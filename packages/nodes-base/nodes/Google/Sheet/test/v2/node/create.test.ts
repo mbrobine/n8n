@@ -30,7 +30,7 @@ describe('Google Sheet - Create', () => {
 	const sheetName = 'test-sheet';
 
 	test('should create a new sheet with given title and options', async () => {
-		const items = [{ json: {} }];
+		const items = [{ data: { json: {} }, index: 0 }];
 		const existingSheetNames = ['existing-sheet'];
 		const sheetTitle = 'new-sheet';
 		const options = { tabColor: '0aa55c' };
@@ -39,7 +39,6 @@ describe('Google Sheet - Create', () => {
 			replies: [{ addSheet: { properties: { title: sheetTitle } } }],
 		};
 
-		(mockExecuteFunctions.getInputData as jest.Mock).mockReturnValue(items);
 		(mockExecuteFunctions.getNodeParameter as jest.Mock).mockImplementation((paramName: string) => {
 			if (paramName === 'title') return sheetTitle;
 			if (paramName === 'options') return options;
@@ -55,6 +54,8 @@ describe('Google Sheet - Create', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			sheet as GoogleSheet,
 			sheetName,
+			'1234',
+			items,
 		);
 
 		expect(result).toEqual([{ json: responseData }]);
@@ -74,11 +75,10 @@ describe('Google Sheet - Create', () => {
 	});
 
 	test('should skip creating a sheet if the title already exists', async () => {
-		const items = [{ json: {} }];
+		const items = [{ data: { json: {} }, index: 0 }];
 		const existingSheetNames = ['existing-sheet'];
 		const sheetTitle = 'existing-sheet';
 
-		(mockExecuteFunctions as IExecuteFunctions).getInputData = jest.fn().mockReturnValue(items);
 		(mockExecuteFunctions as IExecuteFunctions).getNodeParameter = jest
 			.fn()
 			.mockImplementation((paramName: string) => {
@@ -91,6 +91,8 @@ describe('Google Sheet - Create', () => {
 			mockExecuteFunctions as IExecuteFunctions,
 			sheet as GoogleSheet,
 			sheetName,
+			'1234',
+			items,
 		);
 
 		expect(result).toEqual([]);

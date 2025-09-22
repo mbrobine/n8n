@@ -17,18 +17,20 @@ describe('Google Sheet - Append', () => {
 	it('should insert input data if sheet is empty', async () => {
 		const inputData = [
 			{
-				json: {
-					row_number: 3,
-					name: 'NEW NAME',
-					text: 'NEW TEXT',
+				data: {
+					json: {
+						row_number: 3,
+						name: 'NEW NAME',
+						text: 'NEW TEXT',
+					},
+					pairedItem: {
+						item: 0,
+						input: undefined,
+					},
 				},
-				pairedItem: {
-					item: 0,
-					input: undefined,
-				},
+				index: 0,
 			},
 		];
-		mockExecuteFunctions.getInputData.mockReturnValueOnce(inputData);
 
 		mockExecuteFunctions.getNode.mockReturnValueOnce(mock<INode>({ typeVersion: 4.5 }));
 		mockExecuteFunctions.getNodeParameter
@@ -45,7 +47,7 @@ describe('Google Sheet - Append', () => {
 		mockGoogleSheet.appendEmptyRowsOrColumns.mockResolvedValueOnce([]);
 		mockGoogleSheet.appendSheetData.mockResolvedValueOnce([]);
 
-		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234');
+		await execute.call(mockExecuteFunctions, mockGoogleSheet, 'Sheet1', '1234', inputData);
 
 		expect(mockGoogleSheet.updateRows).toHaveBeenCalledWith('Sheet1', [['name', 'text']], 'RAW', 1);
 		expect(mockGoogleSheet.appendEmptyRowsOrColumns).toHaveBeenCalledWith('1234', 1, 0);
@@ -56,6 +58,6 @@ describe('Google Sheet - Append', () => {
 			range: 'Sheet1',
 			valueInputMode: 'USER_ENTERED',
 		});
-		expect(inputData[0].json).toEqual({ row_number: 3, name: 'NEW NAME', text: 'NEW TEXT' });
+		expect(inputData[0].data.json).toEqual({ row_number: 3, name: 'NEW NAME', text: 'NEW TEXT' });
 	});
 });
