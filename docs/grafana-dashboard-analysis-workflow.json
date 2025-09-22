@@ -1,0 +1,316 @@
+{
+  "meta": {
+    "instanceId": "1234567890abcdef"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "grafana-analysis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Dashboard Analysis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "grafana-dashboard-analysis"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{$node['Webhook - Dashboard Analysis'].json.query.grafana_url}}/api/dashboards/uid/{{$node['Webhook - Dashboard Analysis'].json.query.dashboard_uid}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$node['Webhook - Dashboard Analysis'].json.query.api_token || $credentials.grafanaApi.apiToken}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-dashboard",
+      "name": "Fetch Grafana Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and parse dashboard panels\nconst dashboardData = $input.first().json;\nconst dashboard = dashboardData.dashboard;\n\nif (!dashboard || !dashboard.panels) {\n  throw new Error('Invalid dashboard data received');\n}\n\nconst panels = [];\n\n// Process each panel\nfor (const panel of dashboard.panels) {\n  // Skip row panels or panels without content\n  if (panel.type === 'row' || !panel.targets) {\n    continue;\n  }\n  \n  const panelInfo = {\n    id: panel.id,\n    title: panel.title || 'Untitled Panel',\n    type: panel.type,\n    description: panel.description || '',\n    gridPos: panel.gridPos,\n    targets: [],\n    sql_queries: []\n  };\n  \n  // Extract SQL queries from targets\n  for (const target of panel.targets) {\n    if (target.hide) continue; // Skip hidden targets\n    \n    panelInfo.targets.push({\n      refId: target.refId,\n      datasource: target.datasource,\n      rawSql: target.rawSql || target.query || '',\n      format: target.format,\n      expr: target.expr // For Prometheus queries\n    });\n    \n    // Extract SQL if available\n    if (target.rawSql) {\n      panelInfo.sql_queries.push({\n        refId: target.refId,\n        sql: target.rawSql,\n        datasource: target.datasource?.name || target.datasource\n      });\n    } else if (target.query) {\n      panelInfo.sql_queries.push({\n        refId: target.refId,\n        sql: target.query,\n        datasource: target.datasource?.name || target.datasource\n      });\n    }\n  }\n  \n  panels.push(panelInfo);\n}\n\n// Return dashboard metadata and panels\nreturn {\n  dashboard: {\n    uid: dashboard.uid,\n    title: dashboard.title,\n    description: dashboard.description || '',\n    tags: dashboard.tags || [],\n    timezone: dashboard.timezone,\n    refresh: dashboard.refresh,\n    time: dashboard.time,\n    timepicker: dashboard.timepicker,\n    templating: dashboard.templating,\n    annotations: dashboard.annotations\n  },\n  panels: panels,\n  panelCount: panels.length\n};"
+      },
+      "id": "parse-panels",
+      "name": "Parse Dashboard Panels",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "split-panels",
+              "name": "panel",
+              "value": "={{$json.panels}}",
+              "type": "array"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "split-panels-node",
+      "name": "Split Into Panels",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama3-8b-8192",
+        "options": {
+          "temperature": 0.3,
+          "maxTokensToSample": 1000
+        },
+        "messages": {
+          "messages": [
+            {
+              "role": "system",
+              "content": "You are a dashboard analysis expert. Your task is to analyze Grafana panels and their SQL queries to provide clear, technical descriptions of what each panel does and what business insights it provides."
+            },
+            {
+              "role": "user", 
+              "content": "Please analyze this Grafana panel and provide a detailed description:\\n\\n**Panel Title:** {{$json.panel.title}}\\n**Panel Type:** {{$json.panel.type}}\\n**Description:** {{$json.panel.description}}\\n\\n**SQL Queries:**\\n{{$json.panel.sql_queries.map(q => `- RefID: ${q.refId}\\n  Datasource: ${q.datasource}\\n  SQL: ${q.sql}`).join('\\n\\n')}}\\n\\nPlease provide:\\n1. A clear explanation of what this panel displays\\n2. What the SQL queries are doing (if any)\\n3. What business insights this panel provides\\n4. Any potential optimizations or recommendations\\n\\nFormat your response in markdown."
+            }
+          ]
+        }
+      },
+      "id": "analyze-panel-llm",
+      "name": "Analyze Panel with LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "groq-api-credentials",
+          "name": "Groq API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collect all panel analyses and generate final markdown documentation\nconst items = $input.all();\n\nif (items.length === 0) {\n  return { markdown: '# No panels found for analysis' };\n}\n\n// Get dashboard info from first item\nconst dashboardInfo = items[0].json.dashboard;\nconst analysisDate = new Date().toISOString().split('T')[0];\n\n// Start building markdown document\nlet markdown = `# Dashboard Analysis: ${dashboardInfo.title}\\n\\n`;\nmarkdown += `**Analysis Date:** ${analysisDate}\\n`;\nmarkdown += `**Dashboard UID:** ${dashboardInfo.uid}\\n`;\nmarkdown += `**Tags:** ${dashboardInfo.tags.join(', ') || 'None'}\\n`;\nmarkdown += `**Timezone:** ${dashboardInfo.timezone}\\n`;\nmarkdown += `**Refresh Interval:** ${dashboardInfo.refresh}\\n\\n`;\n\nif (dashboardInfo.description) {\n  markdown += `## Dashboard Description\\n${dashboardInfo.description}\\n\\n`;\n}\n\nmarkdown += `## Panel Analysis\\n\\n`;\nmarkdown += `This dashboard contains ${items.length} panel(s) for analysis.\\n\\n`;\n\n// Add each panel analysis\nitems.forEach((item, index) => {\n  const panelData = item.json.panel;\n  const analysis = item.json.response || 'Analysis not available';\n  \n  markdown += `### ${index + 1}. ${panelData.title}\\n\\n`;\n  markdown += `**Panel ID:** ${panelData.id}\\n`;\n  markdown += `**Type:** ${panelData.type}\\n`;\n  \n  if (panelData.description) {\n    markdown += `**Description:** ${panelData.description}\\n`;\n  }\n  \n  markdown += `**Position:** Row ${panelData.gridPos?.y || 'Unknown'}, Column ${panelData.gridPos?.x || 'Unknown'}\\n\\n`;\n  \n  // Add SQL queries if available\n  if (panelData.sql_queries && panelData.sql_queries.length > 0) {\n    markdown += `**SQL Queries:**\\n\\n`;\n    panelData.sql_queries.forEach(query => {\n      markdown += `*RefID: ${query.refId} (${query.datasource})*\\n`;\n      markdown += `\\`\\`\\`sql\\n${query.sql}\\n\\`\\`\\`\\n\\n`;\n    });\n  }\n  \n  // Add LLM analysis\n  markdown += `**Analysis:**\\n${analysis}\\n\\n`;\n  markdown += `---\\n\\n`;\n});\n\n// Add summary section\nmarkdown += `## Summary\\n\\n`;\nmarkdown += `This dashboard analysis covers ${items.length} panels across various visualization types. `;\nmarkdown += `The panels provide insights into different aspects of the monitored system or business metrics.\\n\\n`;\n\n// Add recommendations section\nmarkdown += `## Recommendations\\n\\n`;\nmarkdown += `1. **Regular Review**: Schedule periodic reviews of these panels to ensure they remain relevant\\n`;\nmarkdown += `2. **Performance Monitoring**: Monitor query performance for panels with complex SQL\\n`;\nmarkdown += `3. **Alert Configuration**: Consider setting up alerts for critical metrics displayed in these panels\\n`;\nmarkdown += `4. **Documentation Updates**: Keep this analysis document updated as panels are modified\\n\\n`;\n\n// Add metadata\nmarkdown += `## Analysis Metadata\\n\\n`;\nmarkdown += `- **Generated by:** n8n Grafana Dashboard Analysis Workflow\\n`;\nmarkdown += `- **Timestamp:** ${new Date().toISOString()}\\n`;\nmarkdown += `- **Dashboard URL:** [View Dashboard]({{$node['Webhook - Dashboard Analysis'].json.query.grafana_url}}/d/${dashboardInfo.uid})\\n`;\n\nreturn { \n  markdown: markdown,\n  dashboard_title: dashboardInfo.title,\n  panel_count: items.length,\n  analysis_date: analysisDate\n};"
+      },
+      "id": "generate-markdown",
+      "name": "Generate Markdown Documentation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.markdown}}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/markdown; charset=utf-8"
+              },
+              {
+                "name": "Content-Disposition",
+                "value": "attachment; filename=\"{{$json.dashboard_title.replace(/[^a-zA-Z0-9]/g, '_')}}_analysis_{{$json.analysis_date}}.md\""
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond with Markdown",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "error-condition",
+              "leftValue": "={{$json.error}}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        500,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\\n  \"error\": \"Dashboard analysis failed\",\\n  \"message\": \"{{$json.error.message || 'Unknown error occurred'}}\",\\n  \"timestamp\": \"{{new Date().toISOString()}}\",\\n  \"dashboard_uid\": \"{{$node['Webhook - Dashboard Analysis'].json.query.dashboard_uid}}\",\\n  \"grafana_url\": \"{{$node['Webhook - Dashboard Analysis'].json.query.grafana_url}}\"\\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        740,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Dashboard Analysis": {
+      "main": [
+        [
+          {
+            "node": "Fetch Grafana Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Grafana Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Parse Dashboard Panels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Dashboard Panels": {
+      "main": [
+        [
+          {
+            "node": "Split Into Panels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Into Panels": {
+      "main": [
+        [
+          {
+            "node": "Analyze Panel with LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Panel with LLM": {
+      "main": [
+        [
+          {
+            "node": "Generate Markdown Documentation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Markdown Documentation": {
+      "main": [
+        [
+          {
+            "node": "Respond with Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-09-22T08:53:00.000Z",
+      "updatedAt": "2024-09-22T08:53:00.000Z",
+      "id": "grafana-analysis",
+      "name": "Grafana Analysis"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-09-22T08:53:00.000Z",
+  "versionId": "1"
+}
