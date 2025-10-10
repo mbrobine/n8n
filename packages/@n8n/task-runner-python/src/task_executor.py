@@ -31,6 +31,15 @@ logger = logging.getLogger(__name__)
 MULTIPROCESSING_CONTEXT = multiprocessing.get_context("forkserver")
 MAX_PRINT_ARGS_ALLOWED = 100
 
+# SSL-related environment variables that should be preserved when clearing env
+# These are needed for HTTPS requests in user code (e.g., via requests library)
+SSL_ENV_VARS = {
+    "SSL_CERT_FILE",      # OpenSSL CA bundle file path
+    "SSL_CERT_DIR",       # OpenSSL CA certificates directory
+    "REQUESTS_CA_BUNDLE", # Requests library CA bundle
+    "CURL_CA_BUNDLE",     # cURL CA bundle (fallback for requests)
+}
+
 PrintArgs = list[list[Any]]  # Args to all `print()` calls in a Python code task
 
 
@@ -162,7 +171,9 @@ class TaskExecutor:
     ):
         """Execute a Python code task in all-items mode."""
 
+        ssl_env_vars = TaskExecutor._preserve_ssl_env_vars()
         os.environ.clear()
+        TaskExecutor._restore_ssl_env_vars(ssl_env_vars)
 
         TaskExecutor._sanitize_sys_modules(stdlib_allow, external_allow)
 
@@ -200,7 +211,9 @@ class TaskExecutor:
     ):
         """Execute a Python code task in per-item mode."""
 
+        ssl_env_vars = TaskExecutor._preserve_ssl_env_vars()
         os.environ.clear()
+        TaskExecutor._restore_ssl_env_vars(ssl_env_vars)
 
         TaskExecutor._sanitize_sys_modules(stdlib_allow, external_allow)
 
@@ -337,6 +350,26 @@ class TaskExecutor:
         return truncated
 
     # ========== security ==========
+
+    @staticmethod
+    def _preserve_ssl_env_vars() -> dict[str, str]:
+        """
+        Preserve SSL-related environment variables before clearing os.environ.
+        
+        Returns a dict of SSL env vars that were present before clearing.
+        These are needed for HTTPS requests in user code.
+        """
+        return {
+            key: os.environ[key]
+            for key in SSL_ENV_VARS
+            if key in os.environ
+        }
+
+    @staticmethod
+    def _restore_ssl_env_vars(ssl_env_vars: dict[str, str]):
+        """Restore SSL-related environment variables after clearing os.environ."""
+        for key, value in ssl_env_vars.items():
+            os.environ[key] = value
 
     @staticmethod
     def _filter_builtins(builtins_deny: set[str]):
